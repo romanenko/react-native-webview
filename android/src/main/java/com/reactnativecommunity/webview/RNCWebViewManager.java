@@ -110,7 +110,7 @@ public class RNCWebViewManager extends SimpleViewManager<WebView> {
 
   protected static final String HTML_ENCODING = "UTF-8";
   protected static final String HTML_MIME_TYPE = "text/html";
-  protected static final String BRIDGE_NAME = "__REACT_WEB_VIEW_BRIDGE";
+  protected static final String JAVASCRIPT_INTERFACE = "ReactNativeWebView";
 
   protected static final String HTTP_METHOD_POST = "POST";
 
@@ -139,8 +139,9 @@ public class RNCWebViewManager extends SimpleViewManager<WebView> {
 
       if (!mLastLoadFailed) {
         RNCWebView reactWebView = (RNCWebView) webView;
+
         reactWebView.callInjectedJavaScript();
-        reactWebView.linkBridge();
+
         emitFinishEvent(webView, url);
       }
     }
@@ -240,6 +241,10 @@ public class RNCWebViewManager extends SimpleViewManager<WebView> {
         mContext = c;
       }
 
+      /**
+       * This method is called whenever JavaScript running within the web view calls:
+       *   - window[JAVASCRIPT_INTERFACE].postMessage
+       */
       @JavascriptInterface
       public void postMessage(String message) {
         mContext.onMessage(message);
@@ -330,11 +335,11 @@ public class RNCWebViewManager extends SimpleViewManager<WebView> {
       }
 
       messagingEnabled = enabled;
+
       if (enabled) {
-        addJavascriptInterface(createRNCWebViewBridge(this), BRIDGE_NAME);
-        linkBridge();
+        addJavascriptInterface(createRNCWebViewBridge(this), JAVASCRIPT_INTERFACE);
       } else {
-        removeJavascriptInterface(BRIDGE_NAME);
+        removeJavascriptInterface(JAVASCRIPT_INTERFACE);
       }
     }
 
@@ -357,30 +362,6 @@ public class RNCWebViewManager extends SimpleViewManager<WebView> {
           injectedJS != null &&
           !TextUtils.isEmpty(injectedJS)) {
         evaluateJavascriptWithFallback("(function() {\n" + injectedJS + ";\n})();");
-      }
-    }
-
-    public void linkBridge() {
-      if (messagingEnabled) {
-        if (ReactBuildConfig.DEBUG && Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
-          // See isNative in lodash
-          String testPostMessageNative = "String(window.postMessage) === String(Object.hasOwnProperty).replace('hasOwnProperty', 'postMessage')";
-          evaluateJavascript(testPostMessageNative, new ValueCallback<String>() {
-            @Override
-            public void onReceiveValue(String value) {
-              if (value.equals("true")) {
-                FLog.w(ReactConstants.TAG, "Setting onMessage on a WebView overrides existing values of window.postMessage, but a previous value was defined");
-              }
-            }
-          });
-        }
-
-        evaluateJavascriptWithFallback("(" +
-          "window.originalPostMessage = window.postMessage," +
-          "window.postMessage = function(data) {" +
-            BRIDGE_NAME + ".postMessage(String(data));" +
-          "}" +
-        ")");
       }
     }
 
@@ -540,6 +521,16 @@ public class RNCWebViewManager extends SimpleViewManager<WebView> {
     view.getSettings().setJavaScriptEnabled(enabled);
   }
 
+  @ReactProp(name = "showsHorizontalScrollIndicator")
+  public void setShowsHorizontalScrollIndicator(WebView view, boolean enabled) {
+    view.setHorizontalScrollBarEnabled(enabled);
+  }
+
+  @ReactProp(name = "showsVerticalScrollIndicator")
+  public void setShowsVerticalScrollIndicator(WebView view, boolean enabled) {
+    view.setVerticalScrollBarEnabled(enabled);
+  }
+  
   @ReactProp(name = "cacheEnabled")
   public void setCacheEnabled(WebView view, boolean enabled) {
     if (enabled) {

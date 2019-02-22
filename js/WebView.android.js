@@ -157,9 +157,9 @@ class WebView extends React.Component<WebViewSharedProps, State> {
         }
         thirdPartyCookiesEnabled={this.props.thirdPartyCookiesEnabled}
         domStorageEnabled={this.props.domStorageEnabled}
-        messagingEnabled={typeof this.props.onMessage === 'function'}
         cacheEnabled={this.props.cacheEnabled}
         onMessage={this.onMessage}
+        messagingEnabled={typeof this.props.onMessage === 'function'}
         overScrollMode={this.props.overScrollMode}
         contentInset={this.props.contentInset}
         automaticallyAdjustContentInsets={
@@ -182,6 +182,8 @@ class WebView extends React.Component<WebViewSharedProps, State> {
         mixedContentMode={this.props.mixedContentMode}
         saveFormDataDisabled={this.props.saveFormDataDisabled}
         urlPrefixesForDefaultIntent={this.props.urlPrefixesForDefaultIntent}
+        showsHorizontalScrollIndicator={this.props.showsHorizontalScrollIndicator}
+        showsVerticalScrollIndicator={this.props.showsVerticalScrollIndicator}
         {...nativeConfig.props}
       />
     );
@@ -194,10 +196,19 @@ class WebView extends React.Component<WebViewSharedProps, State> {
     );
   }
 
+  getViewManagerConfig = (viewManagerName: string) => {
+    if (!UIManager.getViewManagerConfig) {
+      return UIManager[viewManagerName];
+    }
+    return UIManager.getViewManagerConfig(viewManagerName);
+  };
+
+  getCommands = () => this.getViewManagerConfig('RNCWebView').Commands;
+
   goForward = () => {
     UIManager.dispatchViewManagerCommand(
       this.getWebViewHandle(),
-      UIManager.RNCWebView.Commands.goForward,
+      this.getCommands().goForward,
       null,
     );
   };
@@ -205,7 +216,7 @@ class WebView extends React.Component<WebViewSharedProps, State> {
   goBack = () => {
     UIManager.dispatchViewManagerCommand(
       this.getWebViewHandle(),
-      UIManager.RNCWebView.Commands.goBack,
+      this.getCommands().goBack,
       null,
     );
   };
@@ -216,7 +227,7 @@ class WebView extends React.Component<WebViewSharedProps, State> {
     });
     UIManager.dispatchViewManagerCommand(
       this.getWebViewHandle(),
-      UIManager.RNCWebView.Commands.reload,
+      this.getCommands().reload,
       null,
     );
   };
@@ -224,7 +235,7 @@ class WebView extends React.Component<WebViewSharedProps, State> {
   stopLoading = () => {
     UIManager.dispatchViewManagerCommand(
       this.getWebViewHandle(),
-      UIManager.RNCWebView.Commands.stopLoading,
+      this.getCommands().stopLoading,
       null,
     );
   };
@@ -232,7 +243,7 @@ class WebView extends React.Component<WebViewSharedProps, State> {
   postMessage = (data: string) => {
     UIManager.dispatchViewManagerCommand(
       this.getWebViewHandle(),
-      UIManager.RNCWebView.Commands.postMessage,
+      this.getCommands().postMessage,
       [String(data)],
     );
   };
@@ -246,7 +257,7 @@ class WebView extends React.Component<WebViewSharedProps, State> {
   injectJavaScript = (data: string) => {
     UIManager.dispatchViewManagerCommand(
       this.getWebViewHandle(),
-      UIManager.RNCWebView.Commands.injectJavaScript,
+      this.getCommands().injectJavaScript,
       [data],
     );
   };
@@ -311,7 +322,7 @@ class WebView extends React.Component<WebViewSharedProps, State> {
     if (shouldStart) {
       UIManager.dispatchViewManagerCommand(
         this.getWebViewHandle(),
-        UIManager.RNCWebView.Commands.loadUrl,
+        this.getCommands().loadUrl,
         [String(url)],
       );
     }
